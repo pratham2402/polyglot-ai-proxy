@@ -9,6 +9,14 @@ Concurrent translation and text-to-speech orchestration proxy built with FastAPI
 3. Generates TTS audio for each translation concurrently using the ElevenLabs API
 4. Returns the translated text and base64-encoded audio in a single JSON response
 
+## Environment variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DEEPSEEK_API_KEY` | yes | — | DeepSeek API key |
+| `ELEVENLABS_API_KEY` | yes | — | ElevenLabs API key |
+| `ELEVENLABS_VOICE_ID` | no | `EXAVITQu4vr4xnSDxMaL` | ElevenLabs voice ID (Bella) |
+
 ## Setup
 
 ```bash
@@ -66,6 +74,18 @@ Response:
 ## Architecture
 
 - `models.py` — Pydantic request/response schemas
-- `services.py` — Async API connectors with exponential backoff retry
-- `main.py` — FastAPI app and concurrent orchestration via `asyncio.gather`
+- `services.py` — Async API connectors with exponential backoff retry, structured logging, and tenacity retry hooks
+- `main.py` — FastAPI app with global `aiohttp.ClientSession` managed via lifespan handler; concurrent orchestration via `asyncio.gather`
 - `Dockerfile` — Single-stage container build
+
+### Resilience
+
+Both `translate_text` and `generate_tts` are wrapped with tenacity's `@retry`:
+- **Backoff**: Exponential (`wait_exponential`), 2–10s range
+- **Attempts**: 3 max (`stop_after_attempt`)
+- **Triggers**: HTTP 429, 500, 503
+- **Observability**: `before_sleep` hook logs every retry attempt with delay and error detail
+
+### Connection pooling
+
+A single `aiohttp.ClientSession` is created at startup via FastAPI's lifespan handler and shared across all requests — no per-request TCP handshake overhead.
