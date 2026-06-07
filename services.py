@@ -1,6 +1,7 @@
 import os
 import base64
 import aiohttp
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 ELEVENLABS_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
@@ -16,6 +17,17 @@ class APIError(Exception):
         self.status_code = status_code
 
 
+def _is_retryable(exc: BaseException) -> bool:
+    if isinstance(exc, APIError):
+        return exc.status_code in (429, 500, 503)
+    return False
+
+
+@retry(
+    wait=wait_exponential(multiplier=1, min=1, max=60),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type(APIError),
+)
 async def translate_text(text: str, target_lang: str) -> str:
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_KEY}",
@@ -47,6 +59,11 @@ async def translate_text(text: str, target_lang: str) -> str:
             return data["choices"][0]["message"]["content"].strip()
 
 
+@retry(
+    wait=wait_exponential(multiplier=1, min=1, max=60),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type(APIError),
+)
 async def generate_tts(text: str, lang: str) -> str:
     url = ELEVENLABS_URL.format(voice_id=VOICE_ID)
     headers = {
