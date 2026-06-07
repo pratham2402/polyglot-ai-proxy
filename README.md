@@ -1,5 +1,8 @@
 # polyglot-ai-proxy
 
+[![forthebadge](https://forthebadge.com/api/badges/community/019aaa34-4aaf-7843-ac0d-947e4bb6a5d1.svg)](https://forthebadge.com)
+[![forthebadge](https://forthebadge.com/api/badges/community/019d47cd-c033-7c09-9891-4fc8bb6b74af.svg)](https://forthebadge.com)
+
 Concurrent translation and text-to-speech orchestration proxy built with FastAPI.
 
 ## How it works
