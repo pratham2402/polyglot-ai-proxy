@@ -2,7 +2,7 @@ import os
 import base64
 import logging
 import aiohttp
-from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("polyglot-proxy")
@@ -40,7 +40,7 @@ def _log_retry_attempt(retry_state):
 @retry(
     wait=wait_exponential(multiplier=1, min=2, max=10),
     stop=stop_after_attempt(3),
-    retry=retry_if_exception_type(APIError),
+    retry=retry_if_exception(_is_retryable),
     before_sleep=_log_retry_attempt,
     reraise=True,
 )
@@ -85,7 +85,7 @@ async def translate_text(session: aiohttp.ClientSession, text: str, target_lang:
 @retry(
     wait=wait_exponential(multiplier=1, min=2, max=10),
     stop=stop_after_attempt(3),
-    retry=retry_if_exception_type(APIError),
+    retry=retry_if_exception(_is_retryable),
     before_sleep=_log_retry_attempt,
     reraise=True,
 )
